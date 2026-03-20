@@ -15,7 +15,7 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh './mvnw test -Dexclude=**/PostgresIntegrationTests.java'
+                sh './mvnw test -Dexcludes=**/PostgresIntegrationTests.java'
             }
         }
     }
