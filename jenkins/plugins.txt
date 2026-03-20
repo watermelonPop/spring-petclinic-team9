@@ -1,0 +1,15 @@
+blueocean
+git
+github
+pipeline-stage-view
+workflow-aggregator
+docker-workflow
+sonar
+prometheus
+htmlpublisher
+credentials
+ssh-credentials
+plain-credentials
+ansible
+jdk-tool
+mailer

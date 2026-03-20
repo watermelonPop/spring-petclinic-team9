@@ -1,0 +1,10 @@
+scan:
+  application:
+    baseUrl: "http://TARGET_URL_PLACEHOLDER"
+
+reporting:
+  reports:
+    - format: HTML
+      file: /burp/burp-report.html
+    - format: XML
+      file: /burp/burp-report.xml

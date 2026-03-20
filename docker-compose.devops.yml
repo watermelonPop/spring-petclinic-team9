@@ -1,0 +1,84 @@
+services:
+  jenkins:
+    build:
+      context: ./jenkins
+    container_name: petclinic-jenkins
+    user: root
+    ports:
+      - "8088:8080"
+      - "50000:50000"
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/workspace/spring-petclinic
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - petclinic-devops-net
+
+  sonarqube:
+    image: sonarqube:community
+    container_name: petclinic-sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    networks:
+      - petclinic-devops-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: petclinic-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - petclinic-devops-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: petclinic-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - petclinic-devops-net
+
+  burp-scanner:
+    image: public.ecr.aws/portswigger/ci-scanner:latest
+    container_name: petclinic-burp
+    stdin_open: true
+    tty: true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./burp:/burp
+    networks:
+      - petclinic-devops-net
+    profiles:
+      - security
+
+networks:
+  petclinic-devops-net:
+    driver: bridge
+
+volumes:
+  jenkins_home:
+  sonarqube_data:
+  sonarqube_logs:
+  sonarqube_extensions:
+  prometheus_data:
+  grafana_data:
