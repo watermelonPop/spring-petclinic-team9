@@ -15,7 +15,7 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh './mvnw test -Dexcludes=**/PostgresIntegrationTests.java'
+                sh './mvnw test -Dspring.docker.compose.skip.in-tests=true'
             }
         }
     }
