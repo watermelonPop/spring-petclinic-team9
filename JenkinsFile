@@ -10,12 +10,32 @@ pipeline {
         stage('Build') {
             steps {
                 sh './mvnw -DskipTests clean package'
+                sh '''
+                    JAR_FILE=$(ls target/*.jar | grep -v 'original' | head -n 1)
+                    cp "$JAR_FILE" target/spring-petclinic.jar
+                '''
             }
         }
 
         stage('Test') {
             steps {
                 sh './mvnw test -Dmaven.test.failure.ignore=true'
+            }
+        }
+
+        stage('Deploy to Production') {
+            steps {
+                sh '''
+                    ansible-playbook -i ansible/inventory.ini ansible/deploy-petclinic.yml
+                '''
+            }
+        }
+
+        stage('Verify Production') {
+            steps {
+                sh '''
+                    curl -f http://192.168.56.10:8080 | grep -i "Welcome"
+                '''
             }
         }
     }

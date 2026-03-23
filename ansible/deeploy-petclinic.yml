@@ -1,0 +1,42 @@
+---
+- name: Deploy Spring Petclinic to production VM
+  hosts: prod
+  become: yes
+
+  vars:
+    app_dir: /opt/petclinic
+    app_jar: spring-petclinic.jar
+
+  tasks:
+    - name: Ensure app directory exists
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: deploy
+        group: deploy
+        mode: '0755'
+
+    - name: Stop existing application if running
+      shell: "pkill -f '{{ app_jar }}' || true"
+      ignore_errors: true
+
+    - name: Copy application JAR
+      copy:
+        src: "{{ playbook_dir }}/../target/{{ app_jar }}"
+        dest: "{{ app_dir }}/{{ app_jar }}"
+        owner: deploy
+        group: deploy
+        mode: '0755'
+
+    - name: Start application
+      shell: "nohup java -jar {{ app_dir }}/{{ app_jar }} > {{ app_dir }}/petclinic.log 2>&1 &"
+      args:
+        chdir: "{{ app_dir }}"
+      become_user: deploy
+
+    - name: Wait for application to start
+      wait_for:
+        port: 8080
+        host: 127.0.0.1
+        delay: 5
+        timeout: 90
