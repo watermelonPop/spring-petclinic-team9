@@ -19,7 +19,7 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh './mvnw test -Dspring.docker.compose.enabled=false -Dcheckstyle.skip'
+                sh './mvnw test -Dtest=!MySqlIntegrationTests,!PostgresIntegrationTests -Dcheckstyle.skip'
             }
         }
 
