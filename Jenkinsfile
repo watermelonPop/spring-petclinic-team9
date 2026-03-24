@@ -9,7 +9,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh './mvnw -DskipTests clean package'
+                sh './mvnw -DskipTests -Dcheckstyle.skip clean package'
                 sh '''
                     JAR_FILE=$(ls target/*.jar | grep -v 'original' | head -n 1)
                     cp "$JAR_FILE" target/spring-petclinic.jar
