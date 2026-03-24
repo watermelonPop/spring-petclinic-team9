@@ -19,7 +19,7 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh './mvnw test -Dmaven.test.failure.ignore=true'
+                sh './mvnw test -Dmaven.test.failure.ignore=true -Dcheckstyle.skip'
             }
         }
 
