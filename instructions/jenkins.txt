@@ -1,4 +1,5 @@
 Updating jenkins/Dockerfile to use jenkins/jenkins:lts-jdk21. 17 will be depracated for jenkins use on March 30. 
+Ensure docker-compose.devops.yml includes the /var/run/docker.sock:/var/run/docker.sock volume mount and extra_hosts for host.docker.internal.
 
 To build and start Jenkins container, use this command:
 docker compose -f docker-compose.devops.yml up -d --build 
@@ -10,14 +11,25 @@ docker compose -f docker-compose.devops.yml up -d --build
 Verify Jenkins is running with this command:
 docker ps
 
+Enable docker out of docker(IMPORTANT):
+Because our integration tests use Testcontainers, Jenkins needs to speak to your host's Docker engine
+
+Run these commands:
+docker exec -u root -it petclinic-jenkins bash -c "apt-get update && apt-get install -y docker-ce-cli && usermod -aG docker jenkins"
+docker restart petclinic-jenkins
+
+This will come up against permissions issues, run this:
+# Run this on your LOCAL terminal (Mac/Linux/WSL)
+sudo chmod 666 /var/run/docker.sock
+
+Then start the Test Database, you have to have the Postgres container running on your host machine for integration tests:
+docker compose up -d postgres
+
 After that, go to http://localhost:8088 to use the jenkins console.
 
 Configure the pipeline with our remote repository link, set the branch you want to poll.
 Go to triggers part of the pipeline configuration and select Poll SCM, then set the schedule as H/5 * * * *
 This has Jenkins poll the repo every 5 minutes for changes.
-Because it's branch specific, we need to update this configuration before merging to main
+Because it's branch specific, we need to update this configuration before merging to main. Remember to put */ before the branch name like this: */main
 
-Click build now and make sure that it doesn't fail! Currently unstable(some tests not passing), but build works.
-Came up against a huge PostgresIntegrationTests failure because it tries to spin up a Postgres container using Spring Boot's Docker Compose integration during the test run.
-Decided to skip the Postgres integration test in the Jenkins pipeline, since we already have a separate Postgres container managed by docker-compose.devops.yml in the root.
-This is why the JenkinsFile test line uses maven.test.failure.ignore=true.
+Click build now and make sure that it doesn't fail! 
