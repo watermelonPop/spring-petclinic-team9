@@ -24,6 +24,10 @@ pipeline {
         }
 
         stage('Integration Tests') {
+            environment {
+                // forces Testcontainers to tell the Java app to connect to the host's IP instead.
+                TESTCONTAINERS_HOST_OVERRIDE = 'host.docker.internal'
+            }
             steps {
                 // d in d Docker socket mounted Spring Boot launches Postgres via Compose
                 sh './mvnw test \
