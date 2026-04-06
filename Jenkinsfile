@@ -29,10 +29,13 @@ pipeline {
                 TESTCONTAINERS_HOST_OVERRIDE = 'host.docker.internal'
             }
             steps {
-                // d in d Docker socket mounted Spring Boot launches Postgres via Compose
-                sh './mvnw test \
-                    -Dtest=PostgresIntegrationTests \
-                    -Dcheckstyle.skip'
+                sh '''
+                    ./mvnw test \
+                        -Dtest=PostgresIntegrationTests \
+                        -Dspring.datasource.url=jdbc:postgresql://host.docker.internal:5432/petclinic \
+                        -Dspring.docker.compose.skip.in-tests=true \
+                        -Dcheckstyle.skip
+                '''
             }
         }
 
