@@ -29,10 +29,7 @@ pipeline {
                 TESTCONTAINERS_HOST_OVERRIDE = 'host.docker.internal'
             }
             steps {
-                sh '''
-                    export MAVEN_OPTS="-Dspring.docker.compose.skip.in-tests=true -Dspring.datasource.url=jdbc:postgresql://host.docker.internal:5432/petclinic"
-                    ./mvnw test -Dtest=PostgresIntegrationTests -Dcheckstyle.skip
-                '''
+                sh './mvnw test -Dtest=PostgresIntegrationTests -Dspring.datasource.url=jdbc:postgresql://host.docker.internal:5432/petclinic -Dcheckstyle.skip'
             }
         }
 
