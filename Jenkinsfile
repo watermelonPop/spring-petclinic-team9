@@ -30,11 +30,8 @@ pipeline {
             }
             steps {
                 sh '''
-                    ./mvnw test \
-                        -Dtest=PostgresIntegrationTests \
-                        -Dspring.datasource.url=jdbc:postgresql://host.docker.internal:5432/petclinic \
-                        -Dspring.docker.compose.skip.in-tests=true \
-                        -Dcheckstyle.skip
+                    export MAVEN_OPTS="-Dspring.docker.compose.skip.in-tests=true -Dspring.datasource.url=jdbc:postgresql://host.docker.internal:5432/petclinic"
+                    ./mvnw test -Dtest=PostgresIntegrationTests -Dcheckstyle.skip
                 '''
             }
         }
