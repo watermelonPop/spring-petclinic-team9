@@ -17,9 +17,18 @@ pipeline {
             }
         }
 
-        stage('Test') {
+        stage('Unit Tests') {
             steps {
                 sh './mvnw test -Dtest=!MySqlIntegrationTests,!PostgresIntegrationTests -Dcheckstyle.skip'
+            }
+        }
+
+        stage('Integration Tests') {
+            steps {
+                // d in d Docker socket mounted Spring Boot launches Postgres via Compose
+                sh './mvnw test \
+                    -Dtest=PostgresIntegrationTests \
+                    -Dcheckstyle.skip'
             }
         }
 
