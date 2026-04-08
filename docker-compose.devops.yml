@@ -70,6 +70,19 @@ services:
       - petclinic-devops-net
     profiles:
       - security
+  
+  postgres:
+    image: postgres:18.3
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=petclinic
+      - POSTGRES_USER=petclinic
+      - POSTGRES_DB=petclinic
+    networks:
+      - petclinic-devops-net
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
 networks:
   petclinic-devops-net:
@@ -82,3 +95,4 @@ volumes:
   sonarqube_extensions:
   prometheus_data:
   grafana_data:
+  postgres_data:

@@ -14,6 +14,7 @@ docker ps
 Enable docker out of docker(IMPORTANT):
 Because our integration tests use Testcontainers, Jenkins needs to speak to your host's Docker engine
 
+Need to shift this to the jenkins docker file
 Run these commands:
 docker exec -u root -it petclinic-jenkins bash -c "apt-get update && apt-get install -y docker-ce-cli && usermod -aG docker jenkins"
 docker restart petclinic-jenkins
@@ -22,6 +23,7 @@ This will come up against permissions issues, run this:
 # Run this on your LOCAL terminal (Mac/Linux/WSL)
 sudo chmod 666 /var/run/docker.sock
 
+Can skip this step now.
 Then start the Test Database, you have to have the Postgres container running on your host machine for integration tests:
 docker compose up -d postgres
 
