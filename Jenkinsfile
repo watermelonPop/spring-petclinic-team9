@@ -29,7 +29,14 @@ pipeline {
                 TESTCONTAINERS_HOST_OVERRIDE = 'host.docker.internal'
             }
             steps {
-                sh './mvnw test -Dtest=PostgresIntegrationTests -Dspring.datasource.url=jdbc:postgresql://host.docker.internal:5432/petclinic -Dcheckstyle.skip'
+                sh '''
+                    ./mvnw test \
+                        -Dtest=PostgresIntegrationTests \
+                        -Dspring.datasource.url=jdbc:postgresql://postgres:5432/petclinic \
+                        -Dspring.datasource.username=petclinic \
+                        -Dspring.datasource.password=petclinic \
+                        -Dcheckstyle.skip
+                '''
             }
         }
 
