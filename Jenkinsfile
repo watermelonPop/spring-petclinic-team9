@@ -26,26 +26,16 @@ pipeline {
         stage('Integration Tests') {
             steps {
                 script {
-                    // This finds the IP by filtering for the service name 'postgres' 
-                    // regardless of what the container is actually named.
-                    def postgresIp = sh(script: "docker ps -q -f status=running -f name=postgres | xargs docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'", returnStdout: true).trim()
-                    
-                    if (!postgresIp) {
-                        error "Could not find a running Postgres container! Ensure 'postgres' service is up."
-                    }
-                    
-                    echo "Found Postgres at IP: ${postgresIp}"
-                    
-                    sh """
+                    sh '''
                         ./mvnw test \
                             -Dtest=PostgresIntegrationTests \
                             -Dspring.profiles.active=postgres \
-                            -Dspring.datasource.url=jdbc:postgresql://${postgresIp}:5432/petclinic \
+                            -Dspring.datasource.url=jdbc:postgresql://petclinic-postgres-integration:5432/petclinic \
                             -Dspring.datasource.username=petclinic \
                             -Dspring.datasource.password=petclinic \
                             -Dspring.docker.compose.skip.in-tests=true \
                             -Dcheckstyle.skip
-                    """
+                    '''
                 }
             }
         }
