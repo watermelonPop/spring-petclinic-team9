@@ -24,15 +24,16 @@ pipeline {
         }
 
         stage('Integration Tests') {
-            environment {
-                // forces Testcontainers to tell the Java app to connect to the host's IP instead.
-                TESTCONTAINERS_HOST_OVERRIDE = 'host.docker.internal'
-            }
             steps {
+                echo "Waiting for Postgres to be ready..."
+                // Simple sleep to handle the database startup lag
+                sleep 10 
+                
                 sh '''
                     ./mvnw test \
                         -Dtest=PostgresIntegrationTests \
-                        -Dspring.datasource.url=jdbc:postgresql://host.docker.internal:5432/petclinic \
+                        -Dspring.profiles.active=postgres \
+                        -Dspring.datasource.url=jdbc:postgresql://postgres:5432/petclinic \
                         -Dspring.datasource.username=petclinic \
                         -Dspring.datasource.password=petclinic \
                         -Dspring.docker.compose.skip.in-tests=true \
