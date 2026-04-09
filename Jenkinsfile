@@ -17,9 +17,26 @@ pipeline {
             }
         }
 
-        stage('Test') {
+        stage('Unit Tests') {
             steps {
                 sh './mvnw test -Dtest=!MySqlIntegrationTests,!PostgresIntegrationTests -Dcheckstyle.skip'
+            }
+        }
+
+        stage('Integration Tests') {
+            steps {
+                script {
+                    sh '''
+                        ./mvnw test \
+                            -Dtest=PostgresIntegrationTests \
+                            -Dspring.profiles.active=postgres \
+                            -Dspring.datasource.url=jdbc:postgresql://petclinic-postgres-integration:5432/petclinic \
+                            -Dspring.datasource.username=petclinic \
+                            -Dspring.datasource.password=petclinic \
+                            -Dspring.docker.compose.skip.in-tests=true \
+                            -Dcheckstyle.skip
+                    '''
+                }
             }
         }
 
