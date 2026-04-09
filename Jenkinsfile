@@ -25,22 +25,20 @@ pipeline {
 
         stage('Integration Tests') {
             steps {
-                script {
-                    // This command finds the internal Docker IP of the postgres container
-                    def postgresIp = sh(script: "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' petclinic-postgres-integration", returnStdout: true).trim()
-                    echo "Found Postgres at IP: ${postgresIp}"
-                    
-                    sh """
-                        ./mvnw test \
-                            -Dtest=PostgresIntegrationTests \
-                            -Dspring.profiles.active=postgres \
-                            -Dspring.datasource.url=jdbc:postgresql://${postgresIp}:5432/petclinic \
-                            -Dspring.datasource.username=petclinic \
-                            -Dspring.datasource.password=petclinic \
-                            -Dspring.docker.compose.skip.in-tests=true \
-                            -Dcheckstyle.skip
-                    """
-                }
+                echo "Waiting for Postgres to be ready..."
+                // Simple sleep to handle the database startup lag
+                sleep 10 
+                
+                sh '''
+                    ./mvnw test \
+                        -Dtest=PostgresIntegrationTests \
+                        -Dspring.profiles.active=postgres \
+                        -Dspring.datasource.url=jdbc:postgresql://postgres:5432/petclinic \
+                        -Dspring.datasource.username=petclinic \
+                        -Dspring.datasource.password=petclinic \
+                        -Dspring.docker.compose.skip.in-tests=true \
+                        -Dcheckstyle.skip
+                '''
             }
         }
 
