@@ -32,9 +32,10 @@ pipeline {
                 sh '''
                     ./mvnw test \
                         -Dtest=PostgresIntegrationTests \
-                        -Dspring.datasource.url=jdbc:postgresql://postgres:5432/petclinic \
+                        -Dspring.datasource.url=jdbc:postgresql://host.docker.internal:5432/petclinic \
                         -Dspring.datasource.username=petclinic \
                         -Dspring.datasource.password=petclinic \
+                        -Dspring.docker.compose.skip.in-tests=true \
                         -Dcheckstyle.skip
                 '''
             }

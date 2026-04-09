@@ -83,6 +83,8 @@ services:
       - petclinic-devops-net
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 networks:
   petclinic-devops-net:
