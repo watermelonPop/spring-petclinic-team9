@@ -16,3 +16,9 @@ This has Jenkins poll the repo every 5 minutes for changes.
 Because it's branch specific, we need to update this configuration before merging to main. Remember to put */ before the branch name like this: */main
 
 Click build now and make sure that it doesn't fail! 
+
+If the unit tests or integration test phases fail, use these -- it's probably because of postgres version issues:
+This command wipes the old postgres version volumes:
+docker compose -f docker-compose.devops.yml down -v
+docker compose -f docker-compose.devops.yml up -d --build
+
