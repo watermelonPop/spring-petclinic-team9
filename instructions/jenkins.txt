@@ -1,31 +1,12 @@
-Updating jenkins/Dockerfile to use jenkins/jenkins:lts-jdk21. 17 will be depracated for jenkins use on March 30. 
-Ensure docker-compose.devops.yml includes the /var/run/docker.sock:/var/run/docker.sock volume mount and extra_hosts for host.docker.internal.
+Ensure your jenkins/Dockerfile is updated with the Docker CLI installation and jenkins user group logic.
+Ensure docker-compose.devops.yml includes the Postgres service and the jenkins service has the /var/run/docker.sock volume mapping.
 
 To build and start Jenkins container, use this command:
 docker compose -f docker-compose.devops.yml up -d --build 
 
-If you ever need to make changes to the jenkins pipeline, push changes to the remote repo, then run these commands in terminal to fully replace it afterwards:
-docker compose -f docker-compose.devops.yml down
-docker compose -f docker-compose.devops.yml up -d --build 
-
-Verify Jenkins is running with this command:
-docker ps
-
-Enable docker out of docker(IMPORTANT):
-Because our integration tests use Testcontainers, Jenkins needs to speak to your host's Docker engine
-
-Need to shift this to the jenkins docker file
-Run these commands:
-docker exec -u root -it petclinic-jenkins bash -c "apt-get update && apt-get install -y docker-ce-cli && usermod -aG docker jenkins"
-docker restart petclinic-jenkins
-
-This will come up against permissions issues, run this:
-# Run this on your LOCAL terminal (Mac/Linux/WSL)
+Enable docker out of docker(IMPORTANT) -- already baked into dockerfile, but MUST run this command for permissions:
+Run this on your LOCAL terminal (Mac/Linux/WSL)
 sudo chmod 666 /var/run/docker.sock
-
-Can skip this step now.
-Then start the Test Database, you have to have the Postgres container running on your host machine for integration tests:
-docker compose up -d postgres
 
 After that, go to http://localhost:8088 to use the jenkins console.
 
