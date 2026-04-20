@@ -1,0 +1,65 @@
+STEP 1: Start the containers
+Run this command from the project root:
+
+    docker compose -f docker-compose.devops.yml up -d --build
+
+This starts Jenkins, SonarQube, Postgres, Prometheus, and Grafana together.
+
+
+STEP 2: Open SonarQube
+Go to: http://localhost:9000
+
+Default login credentials:
+    Username: admin
+    Password: admin
+
+You will be prompted to change the password on first login.
+
+
+STEP 3: Create a local project
+On the SonarQube home screen, select: Create a local project
+
+Fill in the following:
+    Project display name: Petclinic
+    Project key: petclinic  
+    Main branch name: main
+
+Click "Next", then select "Use the global setting" and click "Create project".
+
+
+STEP 4: Generate a token
+After creating the project, SonarQube will prompt you to generate a token.
+
+    Token name: your-token-name 
+    Token type: Project Analysis Token
+    Expiration: set as appropriate
+
+Click "Generate". Copy the token immediately (you cannot view it again after leaving the page).
+
+
+STEP 5: Add the token to Jenkins
+Open Jenkins at: http://localhost:8088
+
+Navigate to:
+    Manage Jenkins -> Credentials -> (global) -> Add Credentials
+
+Fill in:
+    Kind: Secret text
+    Secret: paste the token you copied from SonarQube
+    ID: sonar-token (this must match exactly)
+    Description: (optional)
+
+Click "Create".
+
+
+STEP 6: Run the pipeline
+In Jenkins, open your pipeline and click "Build Now".
+
+The SonarQube Analysis stage will run after the Unit Tests and Integration Tests stages.
+When it completes successfully, results will appear in the SonarQube dashboard at http://localhost:9000.
+
+
+IMPORTANT NOTES
+- The token is stored in the jenkins_home Docker volume and will survive container restarts.
+- Running "docker compose down -v" will wipe all volumes including the token. If you run
+  that command, you will need to regenerate the token in SonarQube and re-add it to Jenkins.
