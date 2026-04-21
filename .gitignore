@@ -42,6 +42,9 @@ out/
 ### VS Code ###
 .vscode/
 
+### macOS ###
+.DS_Store
+
 ### CSS ###
 _site/
 *.css
