@@ -42,6 +42,17 @@ pipeline {
             steps {
                 sh '''
                     set -euo pipefail
+                    echo "Jenkins workspace: $PWD"
+                    git rev-parse --abbrev-ref HEAD || true
+                    ls -la
+                    ls -la burp || true
+
+                    if [ ! -f burp/docker-compose.burp.yml ]; then
+                        echo "ERROR: burp/docker-compose.burp.yml not found in workspace"
+                        echo "Ensure Jenkins is building the latest branch/commit and workspace is clean."
+                        exit 1
+                    fi
+
                     mkdir -p burp
                     rm -f burp/burp-report.html burp/burp-report.xml burp/scan.log burp/burp-session.log
 

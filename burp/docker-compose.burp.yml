@@ -1,0 +1,21 @@
+services:
+  burpsuite-community:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: petclinic-burpsuite-community
+    restart: unless-stopped
+    ports:
+      - "6081:80"
+      - "5901:5900"
+    environment:
+      - VNC_PASSWORD=burp123
+      - BURP_PROJECT_FILE=/burp/burp-project.burp
+    volumes:
+      - ./:/burp
+    networks:
+      - petclinic-devops-net
+
+networks:
+  petclinic-devops-net:
+    external: true
