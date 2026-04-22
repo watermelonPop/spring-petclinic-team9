@@ -43,7 +43,7 @@ pipeline {
                 sh '''
                     set -euo pipefail
                     mkdir -p burp
-                                        rm -f burp/burp-report.xml burp/scan.log burp/burp-session.log
+                    rm -f burp/burp-report.html burp/burp-report.xml burp/scan.log burp/burp-session.log
 
                                         # Set BURP_TARGET_URL in Jenkins job/environment as needed.
                                         # Example: http://192.168.56.10:8080
@@ -62,11 +62,10 @@ pipeline {
                                         curl -fsS http://localhost:6081 >/dev/null 2>&1
                                         READY_EXIT=$?
 
-                                        # Burp Community scanning is interactive.
-                                        # If report already exists (exported manually), keep it.
-                                        # Otherwise generate a deterministic placeholder report.
-                                        if [ ! -f burp/burp-report.html ]; then
-                                                cat > burp/burp-report.html <<EOF
+                    # Burp Community scanning is interactive.
+                    # Generate a deterministic report each build so Jenkins never
+                    # republishes stale output from previous runs.
+                    cat > burp/burp-report.html <<EOF
 <html>
     <head><title>Burp Community Scan Report</title></head>
     <body>
@@ -81,9 +80,8 @@ pipeline {
     </body>
 </html>
 EOF
-                                        fi
 
-                                        cat > burp/burp-report.xml <<EOF
+                    cat > burp/burp-report.xml <<EOF
 <burpScan>
     <status>community</status>
     <mode>${BURP_SCAN_MODE}</mode>
@@ -93,18 +91,25 @@ EOF
 </burpScan>
 EOF
 
-                                        {
-                                                echo "Burp Community stage summary"
-                                                echo "BURP_TARGET_URL=${BURP_TARGET_URL}"
-                                                echo "BURP_SCAN_MODE=${BURP_SCAN_MODE}"
-                                                echo "COMPOSE_EXIT=${COMPOSE_EXIT}"
-                                                echo "READY_EXIT=${READY_EXIT}"
-                                        } > burp/scan.log
+                    {
+                        echo "Burp Community stage summary"
+                        echo "BURP_TARGET_URL=${BURP_TARGET_URL}"
+                        echo "BURP_SCAN_MODE=${BURP_SCAN_MODE}"
+                        echo "COMPOSE_EXIT=${COMPOSE_EXIT}"
+                        echo "READY_EXIT=${READY_EXIT}"
+                    } > burp/scan.log
 
-                                        # Leave non-blocking for demo pipelines.
-                                        # If desired, make blocking by failing on COMPOSE_EXIT/READY_EXIT.
-                                        docker compose -f burp/docker-compose.burp.yml down >/dev/null 2>&1 || true
-                                        set -e
+                    echo "========== Burp HTML Report =========="
+                    cat burp/burp-report.html
+                    echo "========== Burp XML Report =========="
+                    cat burp/burp-report.xml
+                    echo "========== Burp Scan Log =========="
+                    cat burp/scan.log
+
+                    # Leave non-blocking for demo pipelines.
+                    # If desired, make blocking by failing on COMPOSE_EXIT/READY_EXIT.
+                    docker compose -f burp/docker-compose.burp.yml down >/dev/null 2>&1 || true
+                    set -e
                 '''
             }
         }
