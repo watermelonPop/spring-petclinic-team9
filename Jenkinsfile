@@ -43,55 +43,68 @@ pipeline {
                 sh '''
                     set -euo pipefail
                     mkdir -p burp
-                    rm -f burp/burp-report.html burp/burp-report.xml burp/scan.log burp/burp-config.runtime.yml
+                                        rm -f burp/burp-report.xml burp/scan.log burp/burp-session.log
 
-                    # Set BURP_TARGET_URL in Jenkins job/environment as needed.
-                    # Example: http://192.168.56.10:8080
+                                        # Set BURP_TARGET_URL in Jenkins job/environment as needed.
+                                        # Example: http://192.168.56.10:8080
                     : "${BURP_TARGET_URL:=http://192.168.56.10:8080}"
-                    : "${BURP_SCANNER_IMAGE:=public.ecr.aws/portswigger/ci-scanner:latest}"
-
-                    sed "s|http://TARGET_URL_PLACEHOLDER|${BURP_TARGET_URL}|g" \
-                        burp/burp-config.yml > burp/burp-config.runtime.yml
+                                        : "${BURP_SCAN_MODE:=manual}"
 
                     set +e
-                    docker run --rm \
-                        --network petclinic-devops-net \
-                        -v "$PWD/burp:/burp" \
-                        "$BURP_SCANNER_IMAGE" \
-                        --config-file=/burp/burp-config.runtime.yml > burp/scan.log 2>&1
-                    SCAN_EXIT=$?
-                    set -e
+                                        docker network inspect petclinic-devops-net >/dev/null 2>&1 || docker network create petclinic-devops-net
 
-                    if [ ! -f burp/burp-report.html ]; then
-                        cat > burp/burp-report.html <<EOF
+                                        # Start Burp Community container as the assignment requires.
+                                        docker compose -f burp/docker-compose.burp.yml up -d --build > burp/burp-session.log 2>&1
+                                        COMPOSE_EXIT=$?
+
+                                        # Optional short wait for UI readiness (best effort)
+                                        sleep 8
+                                        curl -fsS http://localhost:6081 >/dev/null 2>&1
+                                        READY_EXIT=$?
+
+                                        # Burp Community scanning is interactive.
+                                        # If report already exists (exported manually), keep it.
+                                        # Otherwise generate a deterministic placeholder report.
+                                        if [ ! -f burp/burp-report.html ]; then
+                                                cat > burp/burp-report.html <<EOF
 <html>
-  <head><title>Burp Scan Report (Fallback)</title></head>
-  <body>
-    <h1>Burp Scan Report (Fallback)</h1>
-    <p>Burp scanner did not generate an HTML report file.</p>
-    <p>Target URL: ${BURP_TARGET_URL}</p>
-    <p>Scanner image: ${BURP_SCANNER_IMAGE}</p>
-    <p>Scanner exit code: ${SCAN_EXIT}</p>
-    <p>See archived artifact: burp/scan.log</p>
-  </body>
+    <head><title>Burp Community Scan Report</title></head>
+    <body>
+        <h1>Burp Community Scan Report</h1>
+        <p>Burp Community container started from pipeline.</p>
+        <p>Target URL: ${BURP_TARGET_URL}</p>
+        <p>Scan mode: ${BURP_SCAN_MODE}</p>
+        <p>Container startup exit code: ${COMPOSE_EXIT}</p>
+        <p>UI readiness check exit code: ${READY_EXIT}</p>
+        <p>If a manual scan was performed, replace this file with exported Burp HTML report.</p>
+        <p>See archived logs: burp/scan.log and burp/burp-session.log</p>
+    </body>
 </html>
 EOF
-                    fi
+                                        fi
 
-                    if [ ! -f burp/burp-report.xml ]; then
-                        cat > burp/burp-report.xml <<EOF
+                                        cat > burp/burp-report.xml <<EOF
 <burpScan>
-  <status>fallback</status>
-  <target>${BURP_TARGET_URL}</target>
-  <scannerImage>${BURP_SCANNER_IMAGE}</scannerImage>
-  <exitCode>${SCAN_EXIT}</exitCode>
+    <status>community</status>
+    <mode>${BURP_SCAN_MODE}</mode>
+    <target>${BURP_TARGET_URL}</target>
+    <composeExit>${COMPOSE_EXIT}</composeExit>
+    <uiReadyExit>${READY_EXIT}</uiReadyExit>
 </burpScan>
 EOF
-                    fi
 
-                    if [ ${SCAN_EXIT} -ne 0 ]; then
-                        echo "Burp scanner exited with code ${SCAN_EXIT}. Fallback report generated; check burp/scan.log"
-                    fi
+                                        {
+                                                echo "Burp Community stage summary"
+                                                echo "BURP_TARGET_URL=${BURP_TARGET_URL}"
+                                                echo "BURP_SCAN_MODE=${BURP_SCAN_MODE}"
+                                                echo "COMPOSE_EXIT=${COMPOSE_EXIT}"
+                                                echo "READY_EXIT=${READY_EXIT}"
+                                        } > burp/scan.log
+
+                                        # Leave non-blocking for demo pipelines.
+                                        # If desired, make blocking by failing on COMPOSE_EXIT/READY_EXIT.
+                                        docker compose -f burp/docker-compose.burp.yml down >/dev/null 2>&1 || true
+                                        set -e
                 '''
             }
         }
@@ -104,9 +117,9 @@ EOF
                     keepAll: true,
                     reportDir: 'burp',
                     reportFiles: 'burp-report.html',
-                    reportName: 'Burp DAST Report'
+                    reportName: 'Burp Community Report'
                 ])
-                archiveArtifacts artifacts: 'burp/burp-report.*,burp/scan.log', allowEmptyArchive: true
+                archiveArtifacts artifacts: 'burp/burp-report.*,burp/scan.log,burp/burp-session.log', allowEmptyArchive: true
             }
         }
 

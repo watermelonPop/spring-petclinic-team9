@@ -1,0 +1,16 @@
+2026-04-22 20:01:44 INFO  b.eis.StartExternallyInitiatedScan - Using Java version 21.0.10
+2026-04-22 20:01:44 INFO  b.e.a.ApplicationConfigFileReader - Did not find user config file, using default config
+2026-04-22 20:01:44 INFO  stdout - Did not find user config file, using default config
+2026-04-22 20:01:44 INFO  b.e.u.userconfigtemplateparser - Using built-in scan configuration(s): Crawl and Audit - CICD Optimized
+2026-04-22 20:01:44 INFO  stdout - You have not set a valid configuration.
+You can configure the container either by passing in environment variables,
+or by placing a burp_config.yml file in the container's working directory.
+See PortSwigger's online documentation for more information.
+2026-04-22 20:01:44 INFO  stdout - 
+2026-04-22 20:01:44 INFO  stdout - You must supply the URL for your DAST Server - either:
+   - Set the environment variable BURP_ENTERPRISE_SERVER_URL, or
+   - Set the field enterpriseServer.url in the config file
+
+You must supply the API key for your DAST Server - either:
+   - Set the environment variable BURP_ENTERPRISE_API_KEY, or
+   - Set the field enterpriseServer.apiKey in the config file
