@@ -1,25 +1,25 @@
-FROM dorowu/ubuntu-desktop-lxde-vnc:focal
+FROM eclipse-temurin:21-jre-jammy
 
-USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	ca-certificates \
+	curl \
+	xvfb \
+	libxrender1 \
+	libxtst6 \
+	libxi6 \
+	libxext6 \
+	libxrandr2 \
+	libxfixes3 \
+	libxinerama1 \
+	libxcursor1 \
+	libfontconfig1 \
+	libfreetype6 \
+	fonts-dejavu-core \
+	&& rm -rf /var/lib/apt/lists/*
 
-RUN rm -f /etc/apt/sources.list.d/google-chrome.list \
-    /etc/apt/sources.list.d/google.list \
-    /etc/apt/sources.list.d/chrome.list \
-    && apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        openjdk-17-jre \
-        wget \
-        ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /opt/burp/projects /opt/burp/reports
 
-ARG BURP_URL="https://portswigger-cdn.net/burp/releases/download?product=community&type=Jar"
+RUN curl -fsSL "https://portswigger.net/burp/releases/startdownload?product=community&type=Jar" \
+	-o /opt/burp/burpsuite_community.jar
 
-RUN mkdir -p /opt/burp /burp/reports \
-    && wget -O /opt/burp/burpsuite_community.jar "${BURP_URL}"
-
-COPY start-burp.sh /usr/local/bin/start-burp.sh
-RUN chmod +x /usr/local/bin/start-burp.sh
-
-ENV BURP_PROJECT_FILE=/burp/burp-project.burp
-
-CMD ["/usr/local/bin/start-burp.sh"]
+CMD ["sh", "-c", "xvfb-run -a java -jar /opt/burp/burpsuite_community.jar"]
