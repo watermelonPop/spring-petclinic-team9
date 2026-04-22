@@ -38,6 +38,21 @@ pipeline {
             }
         }
 
+        stage('Verify Monitoring') {
+            steps {
+                sh '''
+                    echo "Checking Prometheus is up and scraping Jenkins..."
+                    STATUS=$(curl -s http://petclinic-prometheus:9090/api/v1/targets | python3 -c "import sys,json; targets=json.load(sys.stdin)['data']['activeTargets']; jenkins=[t for t in targets if t['labels'].get('job')=='jenkins']; print(jenkins[0]['health'] if jenkins else 'not found')")
+                    echo "Jenkins target status in Prometheus: $STATUS"
+                    if [ "$STATUS" != "up" ]; then
+                        echo "WARNING: Prometheus is not scraping Jenkins metrics."
+                    else
+                        echo "Monitoring OK - Grafana dashboard available at http://petclinic-grafana:3000"
+                    fi
+                '''
+            }
+        }
+
         stage('Deploy to Production') {
             steps {
                 sh '''
@@ -50,21 +65,6 @@ pipeline {
             steps {
                 sh '''
                     curl -f http://192.168.56.10:8080 | grep -i "Welcome"
-                '''
-            }
-        }
-
-        stage('Verify Monitoring') {
-            steps {
-                sh '''
-                    echo "Checking Prometheus is up and scraping Jenkins..."
-                    STATUS=$(curl -s http://petclinic-prometheus:9090/api/v1/targets | python3 -c "import sys,json; targets=json.load(sys.stdin)['data']['activeTargets']; jenkins=[t for t in targets if t['labels'].get('job')=='jenkins']; print(jenkins[0]['health'] if jenkins else 'not found')")
-                    echo "Jenkins target status in Prometheus: $STATUS"
-                    if [ "$STATUS" != "up" ]; then
-                        echo "WARNING: Prometheus is not scraping Jenkins metrics."
-                    else
-                        echo "Monitoring OK - Grafana dashboard available at http://petclinic-grafana:3000"
-                    fi
                 '''
             }
         }
