@@ -44,8 +44,8 @@ pipeline {
                     set -euo pipefail
                     echo "Jenkins workspace: $PWD"
                     
-                    if [ ! -f burp/docker-compose.burp.yml ]; then
-                        echo "ERROR: burp/docker-compose.burp.yml not found. Please make sure the files are pushed."
+                    if [ ! -f docker-compose.devops.yml ]; then
+                        echo "ERROR: docker-compose.devops.yml not found. Please make sure the files are pushed."
                         exit 1
                     fi
 
@@ -53,16 +53,16 @@ pipeline {
                     docker network inspect petclinic-devops-net >/dev/null 2>&1 || docker network create petclinic-devops-net
 
                     echo "Starting Burp Suite Community container in headless mode using xvfb..."
-                    docker compose -f burp/docker-compose.burp.yml up -d --build
+                    docker compose -f docker-compose.devops.yml up -d --build burpsuite-community
 
                     echo "Waiting 30 seconds for Java UI to start in virtual frame buffer..."
                     sleep 30
 
                     echo "Checking container logs to prove Burp started successfully..."
-                    docker compose -f burp/docker-compose.burp.yml logs
+                    docker compose -f docker-compose.devops.yml logs burpsuite-community
 
                     echo "Cleaning up container..."
-                    docker compose -f burp/docker-compose.burp.yml down
+                    docker compose -f docker-compose.devops.yml rm -fsv burpsuite-community
                 '''
             }
         }

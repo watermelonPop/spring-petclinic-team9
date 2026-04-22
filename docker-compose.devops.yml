@@ -57,15 +57,12 @@ services:
     networks:
       - petclinic-devops-net
 
-  burp-scanner:
-    image: public.ecr.aws/portswigger/ci-scanner:latest
-    container_name: petclinic-burp
-    stdin_open: true
-    tty: true
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - ./burp:/burp
+  burpsuite-community:
+    build:
+      context: ./burp
+      dockerfile: Dockerfile
+    image: burp-burpsuite-community
+    container_name: burpsuite-community
     networks:
       - petclinic-devops-net
     profiles:
