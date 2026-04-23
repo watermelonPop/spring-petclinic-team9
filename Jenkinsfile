@@ -57,16 +57,17 @@ pipeline {
                         chmod 777 zap-reports
 
                         echo "Running OWASP ZAP Baseline Scan..."
-                        # Using 'container:petclinic-jenkins' network so ZAP shares localhost with Jenkins
-                        # ZAP automatically prefixes '-r' with '/zap/wrk/', so we just need the filename
-                        docker run --rm -u root --network container:petclinic-jenkins \\
-                            -v "$PWD/zap-reports":/zap/wrk/:rw \\
+                        # Using docker run without --rm and extracting the file manually via docker cp
+                        # This completely bypasses the internal Docker-in-Docker volume mounting mismatch issue
+                        docker rm -f zap-scan >/dev/null 2>&1 || true
+                        docker run --name zap-scan -u root --network container:petclinic-jenkins \\
                             ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \\
                             -t http://localhost:8081 \\
                             -r zap_report.html -I || true
                             
-                        echo "Listing zap-reports directory contents to ensure report was created:"
-                        ls -la zap-reports/ || true
+                        echo "Extracting the report from the container to the Jenkins workspace..."
+                        docker cp zap-scan:/zap/wrk/zap_report.html zap-reports/zap_report.html || echo "WARNING: Report extraction failed."
+                        docker rm -f zap-scan
                             
                         echo "Shutting down background Petclinic app..."
                         kill $APP_PID || true
@@ -77,9 +78,6 @@ pipeline {
 
         stage('Publish ZAP HTML Report') {
             steps {
-                script {
-                    sh 'mkdir -p zap-reports && touch zap-reports/zap_report.html || true' // Failsafe fallback
-                }
                 publishHTML(target: [
                     allowMissing: true,
                     alwaysLinkToLastBuild: true,
