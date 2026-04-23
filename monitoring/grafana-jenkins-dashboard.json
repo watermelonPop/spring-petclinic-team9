@@ -1,0 +1,108 @@
+{
+  "title": "Jenkins Monitoring",
+  "uid": "jenkins-monitoring",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Jenkins Up",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "targets": [{"expr": "default_jenkins_up", "datasource": {"type": "prometheus"}}],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}, "1": {"text": "UP", "color": "green"}}}],
+          "thresholds": {"steps": [{"color": "red", "value": 0}, {"color": "green", "value": 1}]}
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Jenkins Uptime (seconds)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+      "targets": [{"expr": "default_jenkins_uptime", "datasource": {"type": "prometheus"}}],
+      "fieldConfig": {"defaults": {"unit": "s", "color": {"mode": "fixed", "fixedColor": "blue"}}}
+    },
+    {
+      "id": 3,
+      "title": "Executors Available",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+      "targets": [{"expr": "default_jenkins_executors_available", "datasource": {"type": "prometheus"}}],
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "green"}}}
+    },
+    {
+      "id": 4,
+      "title": "Executors Busy",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+      "targets": [{"expr": "default_jenkins_executors_busy", "datasource": {"type": "prometheus"}}],
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "orange"}}}
+    },
+    {
+      "id": 5,
+      "title": "Queue Length",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+      "targets": [{"expr": "default_jenkins_executors_queue_length", "datasource": {"type": "prometheus"}}],
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "purple"}}}
+    },
+    {
+      "id": 6,
+      "title": "Total Builds",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 0},
+      "targets": [{"expr": "sum(default_jenkins_builds_total_build_count_total)", "datasource": {"type": "prometheus"}}],
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}}}
+    },
+    {
+      "id": 7,
+      "title": "Executor Usage Over Time",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "targets": [
+        {"expr": "default_jenkins_executors_busy", "legendFormat": "Busy", "datasource": {"type": "prometheus"}},
+        {"expr": "default_jenkins_executors_idle", "legendFormat": "Idle", "datasource": {"type": "prometheus"}},
+        {"expr": "default_jenkins_executors_available", "legendFormat": "Available", "datasource": {"type": "prometheus"}}
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Build Count Over Time",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "targets": [
+        {"expr": "sum(default_jenkins_builds_total_build_count_total)", "legendFormat": "Total Builds", "datasource": {"type": "prometheus"}},
+        {"expr": "sum(default_jenkins_builds_success_build_count_total)", "legendFormat": "Successful Builds", "datasource": {"type": "prometheus"}}
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Last Build Duration (ms) per Job",
+      "type": "bargauge",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "targets": [
+        {"expr": "default_jenkins_builds_last_build_duration_milliseconds", "legendFormat": "{{jobname}}", "datasource": {"type": "prometheus"}}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ms"}}
+    },
+    {
+      "id": 10,
+      "title": "Last Build Result per Job (1=Success, 0=Fail)",
+      "type": "bargauge",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "targets": [
+        {"expr": "default_jenkins_builds_last_build_result", "legendFormat": "{{jobname}}", "datasource": {"type": "prometheus"}}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {"steps": [{"color": "red", "value": 0}, {"color": "green", "value": 1}]},
+          "color": {"mode": "thresholds"}
+        }
+      }
+    }
+  ]
+}
