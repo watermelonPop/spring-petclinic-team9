@@ -74,13 +74,13 @@ pipeline {
 
                         echo "Running OWASP ZAP Baseline Scan..."
                         docker rm -f zap-scan >/dev/null 2>&1 || true
-                        docker compose -f docker-compose.devops.yml --profile security run --name zap-scan --no-deps \\
-                            zap sh -lc 'mkdir -p /zap/wrk && python3 /zap/zap-baseline.py -t http://petclinic-jenkins:8081 -r /zap/wrk/zap_report.html -I' || true
+                        docker run --name zap-scan -u root --network container:petclinic-jenkins \\
+                            ghcr.io/zaproxy/zaproxy:stable sh -lc 'mkdir -p /zap/wrk && python3 /zap/zap-baseline.py -t http://localhost:8081 -r zap_report.html -I' || true
                             
                         echo "Extracting the report from the container to the Jenkins workspace..."
                         docker cp zap-scan:/zap/wrk/zap_report.html zap-reports/zap_report.html || echo "WARNING: Report extraction failed."
                         ls -la zap-reports || true
-                        docker rm -f zap-scan >/dev/null 2>&1 || true
+                        docker rm -f zap-scan
                             
                         echo "Shutting down background Petclinic app..."
                         kill $APP_PID || true
