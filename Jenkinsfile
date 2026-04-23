@@ -57,8 +57,8 @@ pipeline {
                         chmod 777 zap-reports
 
                         echo "Running OWASP ZAP Baseline Scan..."
-                        # The -I flag ignores failures so the pipeline doesn't crash on warnings
-                        docker run --rm --network petclinic-devops-net \\
+                        # Using root user to avoid permission errors when writing to the host mounted directory
+                        docker run --rm -u root --network petclinic-devops-net \\
                             -v "$PWD/zap-reports":/zap/wrk/:rw \\
                             ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \\
                             -t http://petclinic-jenkins:8081 \\
