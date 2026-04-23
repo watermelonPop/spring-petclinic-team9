@@ -53,21 +53,6 @@ pipeline {
             }
         }
 
-        stage('Verify Monitoring') {
-            steps {
-                sh '''
-                    echo "Checking Prometheus is up and scraping Jenkins..."
-                    STATUS=$(curl -s http://petclinic-prometheus:9090/api/v1/targets | python3 -c "import sys,json; targets=json.load(sys.stdin)['data']['activeTargets']; jenkins=[t for t in targets if t['labels'].get('job')=='jenkins']; print(jenkins[0]['health'] if jenkins else 'not found')")
-                    echo "Jenkins target status in Prometheus: $STATUS"
-                    if [ "$STATUS" != "up" ]; then
-                        echo "WARNING: Prometheus is not scraping Jenkins metrics."
-                    else
-                        echo "Monitoring OK - Grafana dashboard available at http://petclinic-grafana:3000"
-                    fi
-                '''
-            }
-        }
-
         stage('OWASP ZAP Security Scan') {
             steps {
                 script {
@@ -88,16 +73,14 @@ pipeline {
                         rm -f zap-reports/zap_report.html
 
                         echo "Running OWASP ZAP Baseline Scan..."
-                        # Using docker run without --rm and extracting the file manually via docker cp
-                        # This completely bypasses the internal Docker-in-Docker volume mounting mismatch issue
                         docker rm -f zap-scan >/dev/null 2>&1 || true
-                        docker run --name zap-scan -u root --network container:petclinic-jenkins \\
-                            ghcr.io/zaproxy/zaproxy:stable sh -lc 'mkdir -p /zap/wrk && python3 /zap/zap-baseline.py -t http://localhost:8081 -r zap_report.html -I' || true
+                        docker compose -f docker-compose.devops.yml --profile security run --name zap-scan --no-deps \\
+                            zap sh -lc 'mkdir -p /zap/wrk && python3 /zap/zap-baseline.py -t http://petclinic-jenkins:8081 -r /zap/wrk/zap_report.html -I' || true
                             
                         echo "Extracting the report from the container to the Jenkins workspace..."
                         docker cp zap-scan:/zap/wrk/zap_report.html zap-reports/zap_report.html || echo "WARNING: Report extraction failed."
                         ls -la zap-reports || true
-                        docker rm -f zap-scan
+                        docker rm -f zap-scan >/dev/null 2>&1 || true
                             
                         echo "Shutting down background Petclinic app..."
                         kill $APP_PID || true
@@ -117,6 +100,21 @@ pipeline {
                     reportName: 'OWASP ZAP Report'
                 ])
                 archiveArtifacts artifacts: 'zap-reports/zap_report.html', allowEmptyArchive: true
+            }
+        }
+
+        stage('Verify Monitoring') {
+            steps {
+                sh '''
+                    echo "Checking Prometheus is up and scraping Jenkins..."
+                    STATUS=$(curl -s http://petclinic-prometheus:9090/api/v1/targets | python3 -c "import sys,json; targets=json.load(sys.stdin)['data']['activeTargets']; jenkins=[t for t in targets if t['labels'].get('job')=='jenkins']; print(jenkins[0]['health'] if jenkins else 'not found')")
+                    echo "Jenkins target status in Prometheus: $STATUS"
+                    if [ "$STATUS" != "up" ]; then
+                        echo "WARNING: Prometheus is not scraping Jenkins metrics."
+                    else
+                        echo "Monitoring OK - Grafana dashboard available at http://petclinic-grafana:3000"
+                    fi
+                '''
             }
         }
 

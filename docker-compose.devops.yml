@@ -56,6 +56,15 @@ services:
       - grafana_data:/var/lib/grafana
     networks:
       - petclinic-devops-net
+
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    container_name: petclinic-zap
+    networks:
+      - petclinic-devops-net
+    profiles:
+      - security
+    entrypoint: ["sleep", "infinity"]
   
   postgres:
     image: postgres:18.3
