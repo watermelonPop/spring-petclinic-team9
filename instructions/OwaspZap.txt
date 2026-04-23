@@ -1,0 +1,37 @@
+OWASP ZAP (High-Level Setup and Pipeline Flow)
+
+1) Purpose
+- Use OWASP ZAP as the DAST tool in CI/CD to scan Spring Petclinic endpoints for common web security issues.
+- Replace manual Burp UI scanning with an automated Jenkins stage.
+
+2) Prerequisites
+- Jenkins is running in Docker and can execute Docker commands.
+- Spring Petclinic is built in the pipeline (`target/spring-petclinic.jar`).
+- Jenkins has HTML Publisher plugin enabled to publish reports.
+
+3) Security Scan Approach
+- Start the Petclinic app in background on Jenkins (for example on port 8081).
+- Run OWASP ZAP baseline scan in a Docker container.
+- Target URL: `http://localhost:8081` (from Jenkins network context).
+- Save HTML report as `zap_report.html`.
+
+4) Report Handling
+- Copy the generated ZAP report from container to workspace folder: `zap-reports/zap_report.html`.
+- Publish report in Jenkins using HTML Publisher.
+- Archive report as build artifact for download/history.
+
+5) Expected Output
+- Jenkins stage prints PASS/WARN findings in console logs.
+- Build page shows a link: "OWASP ZAP Report".
+- Artifact path includes: `zap-reports/zap_report.html`.
+
+6) Troubleshooting (Common)
+- If report is missing: verify container path and `docker cp` source path.
+- If command not found: run script explicitly (`python3 /zap/zap-baseline.py ...`).
+- If app not reachable: verify app startup wait time and network mode.
+- If empty report: remove stale report file before scan and confirm copy step succeeded.
+
+7) Notes
+- Baseline scan is passive by default (safe for CI).
+- Use `-I` only if you want warnings to not fail the build.
+- For stricter gates, remove `-I` and fail pipeline on findings.
