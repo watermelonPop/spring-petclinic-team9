@@ -64,6 +64,9 @@ pipeline {
                             -t http://localhost:8081 \\
                             -r zap_report.html -I || true
                             
+                        echo "Listing zap-reports directory contents to ensure report was created:"
+                        ls -la zap-reports/ || true
+                            
                         echo "Shutting down background Petclinic app..."
                         kill $APP_PID || true
                     '''
