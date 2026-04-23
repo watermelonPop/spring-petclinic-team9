@@ -1,37 +1,75 @@
-OWASP ZAP (High-Level Setup and Pipeline Flow)
+OWASP ZAP Stage Guide
 
-1) Purpose
-- Use OWASP ZAP as the DAST tool in CI/CD to scan Spring Petclinic endpoints for common web security issues.
-- Replace manual Burp UI scanning with an automated Jenkins stage.
+This file explains how to run the OWASP ZAP part of the Jenkins pipeline and what that stage is doing internally.
 
-2) Prerequisites
-- Jenkins is running in Docker and can execute Docker commands.
-- Spring Petclinic is built in the pipeline (`target/spring-petclinic.jar`).
-- Jenkins has HTML Publisher plugin enabled to publish reports.
+How to run this part of the pipeline
 
-3) Security Scan Approach
-- Start the Petclinic app in background on Jenkins (for example on port 8081).
-- Run OWASP ZAP baseline scan in a Docker container.
-- Target URL: `http://localhost:8081` (from Jenkins network context).
-- Save HTML report as `zap_report.html`.
+Option A: Run full pipeline (recommended)
+1. Open Jenkins: `http://localhost:8088`
+2. Open your pipeline job.
+3. Click `Build Now`.
+4. Watch stage: `OWASP ZAP Security Scan`.
+5. After completion, open stage: `Publish ZAP HTML Report`.
+6. Open report link: `OWASP ZAP Report`.
 
-4) Report Handling
-- Copy the generated ZAP report from container to workspace folder: `zap-reports/zap_report.html`.
-- Publish report in Jenkins using HTML Publisher.
-- Archive report as build artifact for download/history.
+Prerequisites
+- Jenkins container is running and healthy.
+- Build stage has produced: `target/spring-petclinic.jar`.
+- Jenkins can run Docker commands.
+- HTML Publisher plugin is installed (used by `Publish ZAP HTML Report`).
 
-5) Expected Output
-- Jenkins stage prints PASS/WARN findings in console logs.
-- Build page shows a link: "OWASP ZAP Report".
-- Artifact path includes: `zap-reports/zap_report.html`.
+What the `OWASP ZAP Security Scan` stage does
+1. Enables strict shell behavior
+- `set -euo pipefail`
+- Fails fast for script errors and unset variables.
 
-6) Troubleshooting (Common)
-- If report is missing: verify container path and `docker cp` source path.
-- If command not found: run script explicitly (`python3 /zap/zap-baseline.py ...`).
-- If app not reachable: verify app startup wait time and network mode.
-- If empty report: remove stale report file before scan and confirm copy step succeeded.
+2. Starts the app for scanning
+- Runs Spring Petclinic JAR in background on port `8081`:
+	`java -jar target/spring-petclinic.jar --server.port=8081 > spring.log 2>&1 &`
+- Stores process id in `APP_PID` so it can be stopped later.
 
-7) Notes
-- Baseline scan is passive by default (safe for CI).
-- Use `-I` only if you want warnings to not fail the build.
-- For stricter gates, remove `-I` and fail pipeline on findings.
+3. Waits for startup
+- Sleeps 30 seconds before scanning.
+
+4. Prepares report folder
+- Creates `zap-reports/`.
+- Removes old `zap_report.html` if present.
+
+5. Runs OWASP ZAP baseline scan in container
+- Removes stale scanner container name `zap-scan`.
+- Runs:
+	`ghcr.io/zaproxy/zaproxy:stable`
+- Network mode:
+	`--network container:petclinic-jenkins`
+	so ZAP can access app as `http://localhost:8081`.
+- Executes baseline script:
+	`python3 /zap/zap-baseline.py -t http://localhost:8081 -r zap_report.html -I`
+
+6. Copies generated report to Jenkins workspace
+- Copies from container path:
+	`/zap/wrk/zap_report.html`
+- Stores in workspace path:
+	`zap-reports/zap_report.html`
+
+7. Cleans up
+- Removes scanner container.
+- Stops background app process using `kill $APP_PID`.
+
+What `Publish ZAP HTML Report` stage does
+- Publishes `zap-reports/zap_report.html` in Jenkins UI.
+- Archives the same file as a build artifact.
+
+Expected output
+- Console logs show ZAP scan activity and warnings.
+- Jenkins build page includes link: `OWASP ZAP Report`.
+- Artifact exists: `zap-reports/zap_report.html`.
+
+Troubleshooting
+- Report missing:
+	Check whether `docker cp zap-scan:/zap/wrk/zap_report.html zap-reports/zap_report.html` succeeded.
+- App not reachable by ZAP:
+	Increase startup wait (`sleep`) or verify JAR starts on port `8081`.
+- Docker permission errors in Jenkins:
+	Ensure Jenkins container has access to `/var/run/docker.sock` and correct Docker group permissions.
+- Stage passes with warnings:
+	This is expected with `-I` (do not fail build on alerts). Remove `-I` if you want strict failure behavior.
