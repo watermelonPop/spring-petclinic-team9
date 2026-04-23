@@ -63,10 +63,10 @@ pipeline {
                         docker run --name zap-scan -u root --network container:petclinic-jenkins \\
                             ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \\
                             -t http://localhost:8081 \\
-                            -r zap_report.html -I || true
+                            -r /zap/zap_report.html -I || true
                             
                         echo "Extracting the report from the container to the Jenkins workspace..."
-                        docker cp zap-scan:/zap/wrk/zap_report.html zap-reports/zap_report.html || echo "WARNING: Report extraction failed."
+                        docker cp zap-scan:/zap/zap_report.html zap-reports/zap_report.html || echo "WARNING: Report extraction failed."
                         docker rm -f zap-scan
                             
                         echo "Shutting down background Petclinic app..."
