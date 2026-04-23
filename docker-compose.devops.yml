@@ -56,20 +56,6 @@ services:
       - grafana_data:/var/lib/grafana
     networks:
       - petclinic-devops-net
-
-  burp-scanner:
-    image: public.ecr.aws/portswigger/ci-scanner:latest
-    container_name: petclinic-burp
-    stdin_open: true
-    tty: true
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - ./burp:/burp
-    networks:
-      - petclinic-devops-net
-    profiles:
-      - security
   
   postgres:
     image: postgres:18.3

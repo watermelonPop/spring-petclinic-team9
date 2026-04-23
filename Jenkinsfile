@@ -68,6 +68,58 @@ pipeline {
             }
         }
 
+        stage('OWASP ZAP Security Scan') {
+            steps {
+                script {
+                    sh '''
+                        set -euo pipefail
+                        echo "Jenkins workspace: $PWD"
+                        
+                        echo "Starting Spring Petclinic in background for DAST Scan..."
+                        java -jar target/spring-petclinic.jar --server.port=8081 > spring.log 2>&1 &
+                        APP_PID=$!
+                        
+                        echo "Waiting 30 seconds for application to start..."
+                        sleep 30
+                        
+                        echo "Setting up ZAP report directory..."
+                        mkdir -p zap-reports
+                        chmod 777 zap-reports
+                        rm -f zap-reports/zap_report.html
+
+                        echo "Running OWASP ZAP Baseline Scan..."
+                        # Using docker run without --rm and extracting the file manually via docker cp
+                        # This completely bypasses the internal Docker-in-Docker volume mounting mismatch issue
+                        docker rm -f zap-scan >/dev/null 2>&1 || true
+                        docker run --name zap-scan -u root --network container:petclinic-jenkins \\
+                            ghcr.io/zaproxy/zaproxy:stable sh -lc 'mkdir -p /zap/wrk && python3 /zap/zap-baseline.py -t http://localhost:8081 -r zap_report.html -I' || true
+                            
+                        echo "Extracting the report from the container to the Jenkins workspace..."
+                        docker cp zap-scan:/zap/wrk/zap_report.html zap-reports/zap_report.html || echo "WARNING: Report extraction failed."
+                        ls -la zap-reports || true
+                        docker rm -f zap-scan
+                            
+                        echo "Shutting down background Petclinic app..."
+                        kill $APP_PID || true
+                    '''
+                }
+            }
+        }
+
+        stage('Publish ZAP HTML Report') {
+            steps {
+                publishHTML(target: [
+                    allowMissing: true,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'zap-reports',
+                    reportFiles: 'zap_report.html',
+                    reportName: 'OWASP ZAP Report'
+                ])
+                archiveArtifacts artifacts: 'zap-reports/zap_report.html', allowEmptyArchive: true
+            }
+        }
+
         stage('Deploy to Production') {
             steps {
                 sh '''
