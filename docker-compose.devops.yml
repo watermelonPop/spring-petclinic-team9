@@ -56,21 +56,6 @@ services:
       - grafana_data:/var/lib/grafana
     networks:
       - petclinic-devops-net
-
-  burpsuite-community:
-    build:
-      context: ./burp
-      dockerfile: Dockerfile
-    image: burp-burpsuite-community
-    container_name: burpsuite-community
-    ports:
-      - "6081:80"
-    volumes:
-      - ./burp/reports:/workspace/reports
-    networks:
-      - petclinic-devops-net
-    profiles:
-      - security
   
   postgres:
     image: postgres:18.3

@@ -38,55 +38,50 @@ pipeline {
             }
         }
 
-        stage('Burp Security Scan') {
+        stage('OWASP ZAP Security Scan') {
             steps {
                 script {
                     sh '''
                         set -euo pipefail
                         echo "Jenkins workspace: $PWD"
                         
-                        if [ ! -f docker-compose.devops.yml ]; then
-                            echo "ERROR: docker-compose.devops.yml not found."
-                            exit 1
-                        fi
-
-                        echo "Setting up network and report directories..."
-                        docker network inspect petclinic-devops-net >/dev/null 2>&1 || docker network create petclinic-devops-net
-                        mkdir -p burp/reports
-                        chmod 777 burp/reports
-
-                        echo "Starting Burp Suite Community web container..."
-                        docker compose -f docker-compose.devops.yml up -d --build burpsuite-community
-
-                        echo "Waiting for Web UI to be ready..."
-                        sleep 10
-                    '''
-                    
-                    input message: 'PAUSED FOR MANUAL SCAN: Please open http://localhost:6081, start Burp Suite, run your manual scan on petclinic, and save your HTML report to /workspace/reports/burp-report.html. Click Proceed when done!', ok: 'Proceed'
-
-                    sh '''
-                        echo "Cleaning up container..."
-                        docker compose -f docker-compose.devops.yml rm -fsv burpsuite-community
+                        echo "Starting Spring Petclinic in background for DAST Scan..."
+                        java -jar target/spring-petclinic.jar --server.port=8081 > spring.log 2>&1 &
+                        APP_PID=$!
                         
-                        if [ ! -f burp/reports/burp-report.html ]; then
-                            echo "<html><body><h1>No report saved during manual step.</h1></body></html>" > burp/reports/burp-report.html
-                        fi
+                        echo "Waiting 30 seconds for application to start..."
+                        sleep 30
+                        
+                        echo "Setting up ZAP report directory..."
+                        mkdir -p zap-reports
+                        chmod 777 zap-reports
+
+                        echo "Running OWASP ZAP Baseline Scan..."
+                        # The -I flag ignores failures so the pipeline doesn't crash on warnings
+                        docker run --rm --network petclinic-devops-net \\
+                            -v "$PWD/zap-reports":/zap/wrk/:rw \\
+                            zricethezav/zap2docker-stable zap-baseline.py \\
+                            -t http://petclinic-jenkins:8081 \\
+                            -r zap_report.html -I || true
+                            
+                        echo "Shutting down background Petclinic app..."
+                        kill $APP_PID || true
                     '''
                 }
             }
         }
 
-        stage('Publish Burp HTML Report') {
+        stage('Publish ZAP HTML Report') {
             steps {
                 publishHTML(target: [
                     allowMissing: true,
                     alwaysLinkToLastBuild: true,
                     keepAll: true,
-                    reportDir: 'burp/reports',
-                    reportFiles: 'burp-report.html',
-                    reportName: 'Burp Community Report'
+                    reportDir: 'zap-reports',
+                    reportFiles: 'zap_report.html',
+                    reportName: 'OWASP ZAP Report'
                 ])
-                archiveArtifacts artifacts: 'burp/reports/burp-report.html', allowEmptyArchive: true
+                archiveArtifacts artifacts: 'zap-reports/zap_report.html', allowEmptyArchive: true
             }
         }
 
