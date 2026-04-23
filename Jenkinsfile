@@ -55,13 +55,14 @@ pipeline {
                         echo "Setting up ZAP report directory..."
                         mkdir -p zap-reports
                         chmod 777 zap-reports
+                        rm -f zap-reports/zap_report.html
 
                         echo "Running OWASP ZAP Baseline Scan..."
                         # Using docker run without --rm and extracting the file manually via docker cp
                         # This completely bypasses the internal Docker-in-Docker volume mounting mismatch issue
                         docker rm -f zap-scan >/dev/null 2>&1 || true
                         docker run --name zap-scan -u root --network container:petclinic-jenkins \\
-                            ghcr.io/zaproxy/zaproxy:stable sh -lc 'mkdir -p /zap/wrk && zap-baseline.py -t http://localhost:8081 -r zap_report.html -I' || true
+                            ghcr.io/zaproxy/zaproxy:stable sh -lc 'mkdir -p /zap/wrk && python3 /zap/zap-baseline.py -t http://localhost:8081 -r zap_report.html -I' || true
                             
                         echo "Extracting the report from the container to the Jenkins workspace..."
                         docker cp zap-scan:/zap/wrk/zap_report.html zap-reports/zap_report.html || echo "WARNING: Report extraction failed."
