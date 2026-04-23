@@ -38,6 +38,18 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            steps {
+                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                    sh """
+                        ./mvnw jacoco:report sonar:sonar \
+                            -Dsonar.projectKey=petclinic \
+                            -Dsonar.projectName=Petclinic \
+                            -Dsonar.host.url=http://sonarqube:9000 \
+                            -Dsonar.token=${SONAR_TOKEN} \
+                            -Dcheckstyle.skip
+                    """
+                }
         stage('Verify Monitoring') {
             steps {
                 sh '''
