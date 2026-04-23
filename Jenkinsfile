@@ -57,11 +57,11 @@ pipeline {
                         chmod 777 zap-reports
 
                         echo "Running OWASP ZAP Baseline Scan..."
-                        # Using root user to avoid permission errors when writing to the host mounted directory
-                        docker run --rm -u root --network petclinic-devops-net \\
+                        # Using 'container:petclinic-jenkins' network so ZAP shares localhost with Jenkins
+                        docker run --rm -u root --network container:petclinic-jenkins \\
                             -v "$PWD/zap-reports":/zap/wrk/:rw \\
                             ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \\
-                            -t http://petclinic-jenkins:8081 \\
+                            -t http://localhost:8081 \\
                             -r zap_report.html -I || true
                             
                         echo "Shutting down background Petclinic app..."
