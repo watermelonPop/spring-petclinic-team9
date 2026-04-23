@@ -54,3 +54,4 @@ How it connects to deployment pipeline
   - `ansible-playbook -i ansible/inventory.ini ansible/deploy-petclinic.yml`
 - Jenkins verify stage checks:
   - `http://192.168.56.10:8080`
+  
