@@ -60,7 +60,7 @@ pipeline {
                         # The -I flag ignores failures so the pipeline doesn't crash on warnings
                         docker run --rm --network petclinic-devops-net \\
                             -v "$PWD/zap-reports":/zap/wrk/:rw \\
-                            zricethezav/zap2docker-stable zap-baseline.py \\
+                            ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \\
                             -t http://petclinic-jenkins:8081 \\
                             -r zap_report.html -I || true
                             
