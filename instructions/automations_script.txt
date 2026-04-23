@@ -1,0 +1,54 @@
+Automation Script Run Guide
+
+Script location
+- `setup-automation.ps1` (repo root)
+
+What the script does
+- Starts/ensures the Vagrant production VM is running.
+- Starts DevOps services with Docker Compose.
+- Waits for Jenkins to be ready.
+- Configures Jenkins SSH key access to the VM deploy user.
+- Optionally creates `sonar-token` credential from `SONAR_TOKEN` env var.
+- Creates/updates Jenkins pipeline job and polling trigger.
+- Optionally triggers the first build.
+
+Prerequisites
+- Run from repo root: `C:\spring-petclinic-team9`
+- Docker Desktop running.
+- Vagrant + VirtualBox installed and working.
+- Internet access for image/plugin downloads.
+- PowerShell execution policy allows script execution.
+
+One-time PowerShell permission (if needed)
+- In PowerShell (current session only):
+  `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
+
+Basic usage
+1. Open PowerShell in repo root.
+2. Optional (required for SonarQube stage):
+   `$env:SONAR_TOKEN="<your_sonar_token>"`
+3. Run setup and trigger first build:
+   `.\setup-automation.ps1 -TriggerBuild`
+
+Useful options
+- Set job name:
+  `.\setup-automation.ps1 -JobName "petclinic-ci"`
+- Set polling schedule:
+  `.\setup-automation.ps1 -PollSchedule "H/2 * * * *"`
+- Force branch used by Jenkins job:
+  `.\setup-automation.ps1 -Branch "main"`
+- Force repository URL:
+  `.\setup-automation.ps1 -RepoUrl "https://github.com/<owner>/<repo>"`
+- Full example:
+  `.\setup-automation.ps1 -JobName "petclinic-ci" -Branch "main" -PollSchedule "H/2 * * * *" -TriggerBuild`
+
+After it finishes
+- Jenkins UI: `http://localhost:8088`
+- Verify job exists and has SCM polling configured.
+- Push code to tracked branch; Jenkins will pick changes on next poll interval.
+
+Troubleshooting
+- "script cannot be loaded": run with execution policy bypass shown above.
+- Jenkins not reachable: ensure `docker compose -f docker-compose.devops.yml up -d --build` succeeded.
+- Vagrant errors: run `cd petclinic-prod-vm; vagrant status; vagrant up`.
+- Sonar stage fails due to missing token: set `SONAR_TOKEN` and rerun script.

@@ -1,0 +1,52 @@
+Ansible Deployment Guide
+
+This project uses Ansible to deploy the built Spring Petclinic JAR to a production VM.
+
+Command used in Jenkins
+- `ansible-playbook -i ansible/inventory.ini ansible/deploy-petclinic.yml`
+
+What `inventory.ini` does
+- Defines the production host group: `[prod]`
+- Host entry:
+  - `ansible_host=192.168.56.10` (target VM IP)
+  - `ansible_user=deploy` (SSH user)
+  - `ansible_ssh_private_key_file=/var/jenkins_home/.ssh/id_rsa` (SSH key used by Jenkins)
+  - `ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new'` (auto-accept first host key)
+
+What `deploy-petclinic.yml` does
+1) Target and privilege settings
+- Runs on hosts in group `prod`.
+- Uses `become: yes` for privileged operations where needed.
+
+2) Variables
+- `app_dir: /opt/petclinic`
+- `app_jar: spring-petclinic.jar`
+
+3) Task: Ensure app directory exists
+- Creates `/opt/petclinic` if missing.
+- Sets owner/group to `deploy`.
+- Sets permissions to `0755`.
+
+4) Task: Stop existing application if running
+- Executes `pkill -f 'spring-petclinic.jar' || true`.
+- Prevents old app process from conflicting with the new deploy.
+
+5) Task: Copy application JAR
+- Copies built artifact from Jenkins workspace:
+  - source: `target/spring-petclinic.jar`
+  - destination: `/opt/petclinic/spring-petclinic.jar`
+- Sets owner/group to `deploy` and mode `0755`.
+
+6) Task: Start application
+- Runs app in background with nohup as user `deploy`:
+  - `nohup java -jar /opt/petclinic/spring-petclinic.jar > /opt/petclinic/petclinic.log 2>&1 &`
+- Logs are written to `/opt/petclinic/petclinic.log`.
+
+7) Task: Wait for startup
+- Waits up to 90 seconds for local VM port `8080` to become available.
+- Adds a short delay before checks begin.
+
+End result
+- The new JAR is deployed to the VM.
+- Previous app process is replaced.
+- New app instance is started and verified listening on port `8080`.

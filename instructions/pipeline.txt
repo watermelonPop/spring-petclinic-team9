@@ -1,0 +1,68 @@
+Jenkins Pipeline Stage Guide
+
+This file explains what each stage in `Jenkinsfile` does.
+
+1) Checkout
+- Pulls source code from the configured SCM repository using `checkout scm`.
+- Ensures the workspace has the latest commit before build/test steps.
+
+2) Build
+- Runs Maven package build without tests and without Checkstyle:
+  `./mvnw -DskipTests -Dcheckstyle.skip clean package`
+- Finds the built application JAR and copies it to a stable name:
+  `target/spring-petclinic.jar`
+- This stable JAR name is used by later stages (security scan and deployment).
+
+3) Unit Tests
+- Runs unit tests while excluding database-heavy integration suites:
+  `./mvnw test -Dtest=!MySqlIntegrationTests,!PostgresIntegrationTests -Dcheckstyle.skip`
+- Validates core application logic quickly.
+
+4) Integration Tests
+- Runs Postgres integration tests with explicit profile and datasource:
+  - `-Dtest=PostgresIntegrationTests`
+  - `-Dspring.profiles.active=postgres`
+  - `-Dspring.datasource.url=jdbc:postgresql://petclinic-postgres-integration:5432/petclinic`
+  - `-Dspring.docker.compose.skip.in-tests=true`
+- Verifies app behavior with the Postgres-backed setup used in this pipeline.
+
+5) SonarQube Analysis
+- Uses Jenkins credential `sonar-token` to authenticate securely.
+- Generates JaCoCo coverage report and sends analysis to SonarQube:
+  - project key: `petclinic`
+  - project name: `Petclinic`
+  - server URL: `http://sonarqube:9000`
+- Provides code quality, bug, vulnerability, and coverage insights.
+
+6) OWASP ZAP Security Scan
+- Starts the packaged app in background on port `8081` for DAST scanning.
+- Waits for startup, prepares `zap-reports/`, and removes stale report files.
+- Runs OWASP ZAP baseline scan in a container against `http://localhost:8081`.
+- Copies generated HTML report to workspace at:
+  `zap-reports/zap_report.html`
+- Stops the background app process at the end.
+
+7) Publish ZAP HTML Report
+- Publishes the ZAP HTML report in Jenkins UI (`OWASP ZAP Report`).
+- Archives `zap-reports/zap_report.html` as a build artifact.
+- Keeps historical reports accessible across builds.
+
+8) Verify Monitoring
+- Calls Prometheus target API to check if Jenkins metrics target is healthy.
+- Prints current scrape status to logs.
+- Warns if target is not `up`; otherwise confirms Grafana endpoint availability.
+
+9) Deploy to Production
+- Deploys the built JAR to production VM using Ansible:
+  `ansible-playbook -i ansible/inventory.ini ansible/deploy-petclinic.yml`
+- Uses inventory host/user/key settings to perform remote deployment steps.
+
+10) Verify Production Test
+- Sends HTTP request to production app endpoint:
+  `curl -f http://192.168.56.10:8080 | grep -i "Welcome"`
+- Fails stage if app is unreachable or welcome page content is missing.
+
+Post Action (always)
+- Publishes JUnit test reports from:
+  `**/target/surefire-reports/*.xml`
+- Ensures test results are visible in Jenkins even if earlier stages fail.

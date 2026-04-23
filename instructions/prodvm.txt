@@ -1,0 +1,56 @@
+Production VM (Vagrant) Guide
+
+This project creates a local production-like VM using Vagrant from:
+- `petclinic-prod-vm/Vagrantfile`
+
+How the VM is created
+1) Base image
+- Uses Ubuntu 22.04 box:
+  - `config.vm.box = "ubuntu/jammy64"`
+
+2) Networking
+- Sets a host-only private IP:
+  - `192.168.56.10`
+- This IP is used by Ansible and Jenkins deploy/verify steps.
+
+3) VirtualBox resources
+- Memory: `2048` MB
+- CPUs: `2`
+
+4) Provisioning steps (shell provisioner)
+- Runs `apt-get update`
+- Installs Java runtime required to run the Spring Boot JAR:
+  - `openjdk-17-jre`
+- Creates deploy user if it does not already exist:
+  - `useradd -m -s /bin/bash deploy || true`
+- Prepares deployment directory:
+  - `mkdir -p /opt/petclinic`
+  - `chown -R deploy:deploy /opt/petclinic`
+
+Why this matters
+- The VM is prepped so Ansible can copy and run `spring-petclinic.jar` as `deploy`.
+- App runtime dependency (Java 17) is available immediately after `vagrant up`.
+
+Common commands
+- Create/start VM:
+  - `cd petclinic-prod-vm`
+  - `vagrant up`
+- Check VM status:
+  - `vagrant status`
+- SSH into VM:
+  - `vagrant ssh`
+- Re-run provisioning:
+  - `vagrant provision`
+- Stop VM:
+  - `vagrant halt`
+- Remove VM:
+  - `vagrant destroy -f`
+
+How it connects to deployment pipeline
+- Ansible inventory points to this VM:
+  - host `192.168.56.10`
+  - user `deploy`
+- Jenkins deploy stage runs:
+  - `ansible-playbook -i ansible/inventory.ini ansible/deploy-petclinic.yml`
+- Jenkins verify stage checks:
+  - `http://192.168.56.10:8080`
