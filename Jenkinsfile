@@ -40,30 +40,53 @@ pipeline {
 
         stage('Burp Security Scan') {
             steps {
-                sh '''
-                    set -euo pipefail
-                    echo "Jenkins workspace: $PWD"
+                script {
+                    sh '''
+                        set -euo pipefail
+                        echo "Jenkins workspace: $PWD"
+                        
+                        if [ ! -f docker-compose.devops.yml ]; then
+                            echo "ERROR: docker-compose.devops.yml not found."
+                            exit 1
+                        fi
+
+                        echo "Setting up network and report directories..."
+                        docker network inspect petclinic-devops-net >/dev/null 2>&1 || docker network create petclinic-devops-net
+                        mkdir -p burp/reports
+                        chmod 777 burp/reports
+
+                        echo "Starting Burp Suite Community web container..."
+                        docker compose -f docker-compose.devops.yml up -d --build burpsuite-community
+
+                        echo "Waiting for Web UI to be ready..."
+                        sleep 10
+                    '''
                     
-                    if [ ! -f docker-compose.devops.yml ]; then
-                        echo "ERROR: docker-compose.devops.yml not found. Please make sure the files are pushed."
-                        exit 1
-                    fi
+                    input message: 'PAUSED FOR MANUAL SCAN: Please open http://localhost:6081, start Burp Suite, run your manual scan on petclinic, and save your HTML report to /workspace/reports/burp-report.html. Click Proceed when done!', ok: 'Proceed'
 
-                    echo "Setting up network..."
-                    docker network inspect petclinic-devops-net >/dev/null 2>&1 || docker network create petclinic-devops-net
+                    sh '''
+                        echo "Cleaning up container..."
+                        docker compose -f docker-compose.devops.yml rm -fsv burpsuite-community
+                        
+                        if [ ! -f burp/reports/burp-report.html ]; then
+                            echo "<html><body><h1>No report saved during manual step.</h1></body></html>" > burp/reports/burp-report.html
+                        fi
+                    '''
+                }
+            }
+        }
 
-                    echo "Starting Burp Suite Community container in headless mode using xvfb..."
-                    docker compose -f docker-compose.devops.yml up -d --build burpsuite-community
-
-                    echo "Waiting 30 seconds for Java UI to start in virtual frame buffer..."
-                    sleep 30
-
-                    echo "Checking container logs to prove Burp started successfully..."
-                    docker compose -f docker-compose.devops.yml logs burpsuite-community
-
-                    echo "Cleaning up container..."
-                    docker compose -f docker-compose.devops.yml rm -fsv burpsuite-community
-                '''
+        stage('Publish Burp HTML Report') {
+            steps {
+                publishHTML(target: [
+                    allowMissing: true,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'burp/reports',
+                    reportFiles: 'burp-report.html',
+                    reportName: 'Burp Community Report'
+                ])
+                archiveArtifacts artifacts: 'burp/reports/burp-report.html', allowEmptyArchive: true
             }
         }
 
