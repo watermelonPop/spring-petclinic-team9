@@ -27,6 +27,9 @@ pipeline {
             steps {
                 script {
                     sh '''
+                        export TESTCONTAINERS_RYUK_DISABLED=true
+                        export TESTCONTAINERS_CHECKS_DISABLE=true
+
                         ./mvnw test \
                             -Dtest=PostgresIntegrationTests \
                             -Dspring.profiles.active=postgres \
