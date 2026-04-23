@@ -72,4 +72,5 @@ Troubleshooting
 - Docker permission errors in Jenkins:
 	Ensure Jenkins container has access to `/var/run/docker.sock` and correct Docker group permissions.
 - Stage passes with warnings:
-	This is expected with `-I` (do not fail build on alerts). Remove `-I` if you want strict failure behavior.
+	This is expected with `-I` (do not fail build on alerts). Remove `-I` if you want strict failure behavior. 
+    
