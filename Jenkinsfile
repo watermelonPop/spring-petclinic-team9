@@ -58,11 +58,12 @@ pipeline {
 
                         echo "Running OWASP ZAP Baseline Scan..."
                         # Using 'container:petclinic-jenkins' network so ZAP shares localhost with Jenkins
+                        # Corrected the -r flag to point to the mounted /zap/wrk/ directory
                         docker run --rm -u root --network container:petclinic-jenkins \\
                             -v "$PWD/zap-reports":/zap/wrk/:rw \\
                             ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \\
                             -t http://localhost:8081 \\
-                            -r zap_report.html -I || true
+                            -r /zap/wrk/zap_report.html -I || true
                             
                         echo "Listing zap-reports directory contents to ensure report was created:"
                         ls -la zap-reports/ || true
