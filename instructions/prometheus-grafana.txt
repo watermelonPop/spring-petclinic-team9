@@ -1,0 +1,95 @@
+STEP 1: Start the containers
+Run this command from the project root:
+
+    docker compose -f docker-compose.devops.yml up -d --build
+
+This starts Jenkins, SonarQube, Postgres, Prometheus, and Grafana together.
+
+
+STEP 2: Install the Prometheus Metrics plugin in Jenkins
+Open Jenkins at: http://localhost:8088
+
+Navigate to:
+    Manage Jenkins -> Plugins -> Available plugins
+
+Search for "Prometheus metrics" and install it.
+Check "Restart Jenkins when installation is complete" and wait for Jenkins to restart.
+
+To verify the plugin is working, run:
+    curl -u admin:<your-api-token> http://localhost:8088/prometheus/
+
+You should see a large block of metrics text starting with "# HELP ...".
+
+
+STEP 3: Generate a Jenkins API token
+In Jenkins, click your username (top right) -> Configure -> API Token -> Add new Token.
+Name it anything, click Generate, and copy the token.
+
+This token is used by Prometheus to authenticate when scraping Jenkins metrics.
+
+
+STEP 4: Verify Prometheus is scraping Jenkins
+Open Prometheus at: http://localhost:9090
+
+Navigate to: Status -> Targets
+
+You should see two targets:
+    - jenkins: State = UP
+    - prometheus: State = UP
+
+If Jenkins shows as DOWN, check that the Prometheus metrics plugin is installed
+and that prometheus/prometheus.yml has the correct Jenkins container name.
+
+
+STEP 5: Configure Grafana data source
+Open Grafana at: http://localhost:3000
+
+Default login credentials:
+    Username: admin
+    Password: admin
+
+Navigate to:
+    Connections -> Data Sources -> Add data source -> Prometheus
+
+Set the URL to:
+    http://petclinic-prometheus:9090
+
+Click "Save & Test". You should see "Successfully queried the Prometheus API".
+
+
+STEP 6: Import the Jenkins dashboard
+In Grafana, navigate to:
+    Dashboards -> New -> Import -> Upload dashboard JSON file
+
+Upload the file at: monitoring/grafana-jenkins-dashboard.json
+
+Select your Prometheus data source from the dropdown and click Import.
+
+The dashboard will display the following Jenkins metrics:
+    - Jenkins Up/Down status
+    - Jenkins uptime
+    - Executor availability and usage
+    - Queue length
+    - Total and successful build counts
+    - Last build duration per job
+    - Last build result per job (1 = Success, 0 = Fail)
+
+
+STEP 7: Run the pipeline to generate metrics
+In Jenkins, open your pipeline and click "Build Now".
+
+The pipeline includes a "Verify Monitoring" stage that:
+    - Checks that Prometheus is actively scraping Jenkins
+    - Confirms the Grafana dashboard URL is accessible
+    - Prints the Jenkins target health status to the build log
+
+After the build completes, refresh the Grafana dashboard to see updated metrics.
+
+
+IMPORTANT NOTES
+- The Grafana data source must be configured manually after first startup since
+  Grafana data is stored in the grafana_data Docker volume.
+- Running "docker compose down -v" will wipe all volumes including Grafana settings.
+  If you run that command, you will need to re-add the data source and re-import the dashboard.
+- The prometheus/prometheus.yml file uses the Docker container name "petclinic-jenkins"
+  to reach Jenkins within the Docker network. Do not change this to "localhost".
