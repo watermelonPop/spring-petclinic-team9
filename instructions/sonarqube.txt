@@ -57,9 +57,10 @@ In Jenkins, open your pipeline and click "Build Now".
 
 The SonarQube Analysis stage will run after the Unit Tests and Integration Tests stages.
 When it completes successfully, results will appear in the SonarQube dashboard at http://localhost:9000.
+The visualized pipeline via Blue Ocean plugin can be accessed at http://localhost:8088/blue.
 
 
 IMPORTANT NOTES
-- The token is stored in the jenkins_home Docker volume and will survive container restarts.
+- The token is stored in the jenkins_home Docker volume.
 - Running "docker compose down -v" will wipe all volumes including the token. If you run
   that command, you will need to regenerate the token in SonarQube and re-add it to Jenkins.
